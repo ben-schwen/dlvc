@@ -1,4 +1,4 @@
-# 107.330 Statistical Simulation and Computerintensive Methods
+# 183.663 Deep Learning for Visual Computing (VU 2,0) 2021S
 
 [TISS](https://tiss.tuwien.ac.at/course/courseDetails.xhtml?courseNr=183663)  
 [VOWI](https://vowi.fsinf.at/wiki?title=Spezial:CourseById&ns=TU_Wien&id=183663)  
