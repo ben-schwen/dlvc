@@ -6,5 +6,13 @@
 [TUWEL](https://tuwel.tuwien.ac.at/course/view.php?id=38492)  
 [Gitlab](https://smithers.cvl.tuwien.ac.at/theitzinger/dlvc_ss21_public)
 
+## Assignment 1
 
+* [x] Part 1
+* [x] Part 2
+* [ ] Part 3
+* [ ] Report
 
+## Assignment 2
+
+## Assignment 3
