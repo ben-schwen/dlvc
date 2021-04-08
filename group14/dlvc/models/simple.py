@@ -1,24 +1,28 @@
 import numpy as np
 import sklearn
+from sklearn.neighbors import KNeighborsClassifier
 
 from ..model import Model
 
-class SimpleClassifier(Model):
+class KNN(Model):
     '''
     Simple classifier.
     Returns probabilistic class scores (all scores >= 0 and sum of scores = 1).
     '''
 
-    def __init__(self, input_dim: int, num_classes: int):
+    def __init__(self, input_dim: int, num_classes: int, k:int):
         '''
         Ctor.
         input_dim is the length of input vectors (> 0).
         num_classes is the number of classes (> 1).
+        k is the number of nearest neighbors used for prediction (> 0).
         You are free to pass additional arguments necessary for the chosen classifier to this
             or other methods of this class (such as "k" for a Knn-classifier)
         '''
-
         # TODO implement
+        self.input_dim = input_dim
+        self.num_classes = num_classes
+        self.model = KNeighborsClassifier(n_neighbors=k)
 
     def input_shape(self) -> tuple:
         '''
@@ -26,6 +30,7 @@ class SimpleClassifier(Model):
         '''
 
         # TODO implement
+        return 0, self.input_dim
 
     def output_shape(self) -> tuple:
         '''
@@ -33,6 +38,7 @@ class SimpleClassifier(Model):
         '''
 
         # TODO implement
+        return self.num_classes,
 
     def train(self, data: np.ndarray, labels: np.ndarray) -> float:
         '''
@@ -46,6 +52,7 @@ class SimpleClassifier(Model):
         '''
 
         # TODO implement
+        self.model.fit(data, labels)
 
     def predict(self, data: np.ndarray) -> np.ndarray:
         '''
@@ -58,3 +65,4 @@ class SimpleClassifier(Model):
         '''
 
         # TODO implement
+        return self.model.predict_proba(data)

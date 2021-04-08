@@ -71,7 +71,6 @@ class TestBatch(unittest.TestCase):
         self.assertTrue(np.allclose(batch.label, np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0])))
 
     def test_givenInit(self):
-        print("given init")
         op = ops.chain([
             ops.vectorize(),
             ops.type_cast(np.float32),

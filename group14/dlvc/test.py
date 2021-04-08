@@ -60,7 +60,6 @@ class Accuracy(PerformanceMeasure):
         '''
         Ctor.
         '''
-        self.acc = None
         self.reset()
 
     def reset(self):
@@ -105,7 +104,7 @@ class Accuracy(PerformanceMeasure):
         # See https://docs.python.org/3/library/operator.html for how these
         # operators are used to compare instances of the Accuracy class
         # TODO implement
-        if type(self.acc) != type(other.acc):
+        if (type(self.acc) != type(other.acc)) or (self.acc is None):
             raise TypeError('Incomparable Types')
         else:
             return self.acc < other.acc
@@ -118,7 +117,7 @@ class Accuracy(PerformanceMeasure):
         '''
 
         # TODO implement
-        if type(self.acc) != type(other.acc):
+        if (type(self.acc) != type(other.acc)) or (self.acc is None):
             raise TypeError('Incomparable Types')
         else:
             return self.acc > other.acc
