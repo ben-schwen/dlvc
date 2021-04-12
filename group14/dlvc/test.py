@@ -67,7 +67,8 @@ class Accuracy(PerformanceMeasure):
         Resets the internal state.
         '''
         # TODO implement
-        self.acc = None
+        self.correct = 0
+        self.total = 0
 
     def update(self, prediction: np.ndarray, target: np.ndarray):
         '''
@@ -79,11 +80,12 @@ class Accuracy(PerformanceMeasure):
         '''
 
         # TODO implement
-        if prediction.shape[0] != target.shape[0]:
+        if not prediction.shape[0] == target.shape[0]:
             raise ValueError('Incomparable shapes of prediction and target.')
 
         pred_class = np.argmax(prediction, axis=1)
-        self.acc = np.sum(pred_class == target) / len(target)
+        self.correct = self.correct + np.sum(pred_class == target)
+        self.total = self.total + len(target)
 
     def __str__(self):
         '''
@@ -104,11 +106,10 @@ class Accuracy(PerformanceMeasure):
         # See https://docs.python.org/3/library/operator.html for how these
         # operators are used to compare instances of the Accuracy class
         # TODO implement
-        if (type(self.acc) != type(other.acc)) or (self.acc is None):
-            raise TypeError('Incomparable Types')
-        else:
-            return self.acc < other.acc
+        if not isinstance(other, Accuracy):
+            raise TypeError('Invalid type for other.')
 
+        return self.accuracy() < other.accuracy()
 
     def __gt__(self, other) -> bool:
         '''
@@ -117,10 +118,10 @@ class Accuracy(PerformanceMeasure):
         '''
 
         # TODO implement
-        if (type(self.acc) != type(other.acc)) or (self.acc is None):
-            raise TypeError('Incomparable Types')
-        else:
-            return self.acc > other.acc
+        if not isinstance(other, Accuracy):
+            raise TypeError('Invalid type for other.')
+
+        return self.accuracy() > other.accuracy()
 
     def accuracy(self) -> float:
         '''
@@ -130,7 +131,7 @@ class Accuracy(PerformanceMeasure):
 
         # TODO implement
         # on this basis implementing the other methods is easy (one line)
-        if self.acc is None:
+        if self.total == 0:
             return 0
         else:
-            return self.acc
+            return self.correct / self.total

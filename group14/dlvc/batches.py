@@ -39,10 +39,18 @@ class BatchGenerator:
 
         # TODO implement
         import numpy as np
+
+        if not isinstance(dataset, Dataset):
+            raise TypeError('Invalid type for dataset. Expected:{}. Provided:{}.'.format(Dataset, type(dataset)))
+        if not isinstance(num, int):
+            raise TypeError('Invalid type argument for num. Expected:{}. Provided:{}.'.format(int, type(num)))
+        if not isinstance(shuffle, bool):
+            raise TypeError('Invalid type argument for shuffle. Expected:{}. Provided:{}.'.format(bool, type(shuffle)))
+
         if num > len(dataset):
-            raise ValueError('Invalid argument value: num > len(dataset).')
+            raise ValueError('Invalid value argument for num. num > len(dataset).')
         if num < 1:
-            raise ValueError('Invalid argument value: num < 1.')
+            raise ValueError('Invalid value argument for num. num < 1.')
         self.dataset = dataset
         self.num = num
         self.op = op
@@ -79,5 +87,3 @@ class BatchGenerator:
             batch.label = self.dataset.y[b]
             batch.idx = b
             yield batch
-
-

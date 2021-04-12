@@ -85,7 +85,8 @@ class PetsDataset(ClassificationDataset):
 
         # TODO implement
         if (idx >= self.__len__()) or (idx < 0):
-            raise IndexError('Index out of bounds.')
+            error_msg = "Index out of bounds. Valid input range:{}. Provided index:{}".format([0, self.__len__()-1], idx)
+            raise IndexError(error_msg)
         return self.x[idx]
 
 
