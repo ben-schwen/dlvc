@@ -130,43 +130,43 @@ print("Beende SGD")
 # 6. Compute and report the accuracy on the test set with these parameters.
 
 # PLOTTING
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-df_KNN = pd.DataFrame({'k': ks, 'Training': train_acc_KNN, 'Validation': valid_acc_KNN})
-df_KNN = df_KNN.set_index('k')
-
-y_min = 0.4
-y_max = 1
-
-p1 = sns.lineplot(data=df_KNN, linewidth=2.5, dashes=False)
-p1.set(xlabel = 'k', ylabel = 'Accuracy', title='KNN')
-p1.axhline(test_acc_KNN, color='g', linestyle='--')
-plt.annotate('Testing accuracy', xy=(2.5, 0.63), color='g')
-plt.ylim(y_min, y_max)
-plt.savefig('KNN.png')
-plt.close()
-
-
-df_SGD = pd.DataFrame({'alpha': used_alpha, 'loss': used_loss, 'Training': train_acc_SGD, 'Validation': valid_acc_SGD})
-#df_SGD = df_SGD.set_index('alpha')
-
-p2 = sns.scatterplot(x='alpha', y='Validation', data=df_SGD.loc[df_SGD['loss'] == 'log'])
-p2.set(xlabel = 'alpha', ylabel = 'Accuracy', xscale="log", title='SGD log loss, validation set')
-p2.axhline(0.6061, color='g', linestyle='--')
-plt.annotate('Testing accuracy', xy=(2e-5, 0.62), color='g')
-plt.ylim(y_min, y_max)
-#plt.show()
-plt.savefig('SGD_log.png')
-plt.close()
-
-
-p3 = sns.scatterplot(x='alpha', y='Validation', data=df_SGD.loc[df_SGD['loss'] != 'log'])
-p3.set(xlabel = 'alpha', ylabel = 'Accuracy', xscale='log', title='SGD modified_huber loss, validation set')
-p3.axhline(0.6031, color='g', linestyle='--')
-plt.annotate('Testing accuracy', xy=(2e-5, 0.62), color='g')
-plt.ylim(y_min, y_max)
-#plt.show()
-plt.savefig('SGD_modified_huber.png')
-plt.close()
+# import pandas as pd
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+#
+# df_KNN = pd.DataFrame({'k': ks, 'Training': train_acc_KNN, 'Validation': valid_acc_KNN})
+# df_KNN = df_KNN.set_index('k')
+#
+# y_min = 0.4
+# y_max = 1
+#
+# p1 = sns.lineplot(data=df_KNN, linewidth=2.5, dashes=False)
+# p1.set(xlabel = 'k', ylabel = 'Accuracy', title='KNN')
+# p1.axhline(test_acc_KNN, color='g', linestyle='--')
+# plt.annotate('Testing accuracy', xy=(2.5, 0.63), color='g')
+# plt.ylim(y_min, y_max)
+# plt.savefig('KNN.png')
+# plt.close()
+#
+#
+# df_SGD = pd.DataFrame({'alpha': used_alpha, 'loss': used_loss, 'Training': train_acc_SGD, 'Validation': valid_acc_SGD})
+# #df_SGD = df_SGD.set_index('alpha')
+#
+# p2 = sns.scatterplot(x='alpha', y='Validation', data=df_SGD.loc[df_SGD['loss'] == 'log'])
+# p2.set(xlabel = 'alpha', ylabel = 'Accuracy', xscale="log", title='SGD log loss, validation set')
+# p2.axhline(0.6061, color='g', linestyle='--')
+# plt.annotate('Testing accuracy', xy=(2e-5, 0.62), color='g')
+# plt.ylim(y_min, y_max)
+# #plt.show()
+# plt.savefig('SGD_log.png')
+# plt.close()
+#
+#
+# p3 = sns.scatterplot(x='alpha', y='Validation', data=df_SGD.loc[df_SGD['loss'] != 'log'])
+# p3.set(xlabel = 'alpha', ylabel = 'Accuracy', xscale='log', title='SGD modified_huber loss, validation set')
+# p3.axhline(0.6031, color='g', linestyle='--')
+# plt.annotate('Testing accuracy', xy=(2e-5, 0.62), color='g')
+# plt.ylim(y_min, y_max)
+# #plt.show()
+# plt.savefig('SGD_modified_huber.png')
+# plt.close()
