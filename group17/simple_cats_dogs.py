@@ -66,7 +66,7 @@ for i in ks:
 best_k = ks[np.argmax(valid_acc_KNN)]
 print("bestes k:", best_k)
 
-model = KNN(3072, train_ds.num_classes(), best_k)  # statt i best?
+model = KNN(3072, train_ds.num_classes(), best_k)
 model.train(train.data, train.label)
 acc.reset()
 acc.update(model.predict(test.data), test.label)
@@ -152,20 +152,20 @@ plt.close()
 df_SGD = pd.DataFrame({'alpha': used_alpha, 'loss': used_loss, 'Training': train_acc_SGD, 'Validation': valid_acc_SGD})
 #df_SGD = df_SGD.set_index('alpha')
 
-p2 = sns.scatterplot(x='alpha', y='Training', data=df_SGD.loc[df_SGD['loss'] == 'log'])
+p2 = sns.scatterplot(x='alpha', y='Validation', data=df_SGD.loc[df_SGD['loss'] == 'log'])
 p2.set(xlabel = 'alpha', ylabel = 'Accuracy', xscale="log", title='SGD log loss, validation set')
 p2.axhline(0.6061, color='g', linestyle='--')
-plt.annotate('Testing accuracy', xy=(1e-3, 0.57), color='g')
+plt.annotate('Testing accuracy', xy=(2e-5, 0.62), color='g')
 plt.ylim(y_min, y_max)
 #plt.show()
 plt.savefig('SGD_log.png')
 plt.close()
 
 
-p3 = sns.scatterplot(x='alpha', y='Training', data=df_SGD.loc[df_SGD['loss'] != 'log'])
+p3 = sns.scatterplot(x='alpha', y='Validation', data=df_SGD.loc[df_SGD['loss'] != 'log'])
 p3.set(xlabel = 'alpha', ylabel = 'Accuracy', xscale='log', title='SGD modified_huber loss, validation set')
 p3.axhline(0.6031, color='g', linestyle='--')
-plt.annotate('Testing accuracy', xy=(1e-4, 0.57), color='g')
+plt.annotate('Testing accuracy', xy=(2e-5, 0.62), color='g')
 plt.ylim(y_min, y_max)
 #plt.show()
 plt.savefig('SGD_modified_huber.png')
