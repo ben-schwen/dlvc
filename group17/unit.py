@@ -4,7 +4,7 @@ import numpy as np
 
 import dlvc.ops as ops
 from dlvc.batches import BatchGenerator
-from dlvc.dataset import Subset, Dataset
+from dlvc.dataset import Subset
 from dlvc.datasets.pets import PetsDataset
 from dlvc.test import Accuracy
 
@@ -176,7 +176,6 @@ class TestTest(unittest.TestCase):
         self.assertFalse(higher > higher)
         with self.assertRaises(TypeError):
             lower > True
-
 
 
 if __name__ == '__main__':
