@@ -69,10 +69,10 @@ class Fn:
         '''
 
         # TODO implement
-
-
+        # 2Do: wenn ich das image neu auslese gehts, schaffe es noch nicht aus dem Array 
+        
         # img_grey = cv2.imread(fpath, cv2.IMREAD_GRAYSCALE)
-        img_grey = cv2.imshow(self)                              #Kriege das image nicht vom Array her...
+        img_grey = cv2.imshow(self)                              #Kriege das Image nicht aus dem Array, versuche es weiter;)
         im_color = cv2.applyColorMap(img_grey, cv2.COLORMAP_JET)
         """
         plt.imshow(im_color)
@@ -91,6 +91,8 @@ class Fn:
         # TODO implement
         # You can simply round and map to integers. If so, make sure not to set eps and learning_rate too low
         # Alternatively, you can implement some form of interpolation (for example bilinear)
+        
+        # 2Do: Sollen wir hier nur den Wert aus der Matrix auslesen?
 
         pass
 
@@ -101,7 +103,9 @@ class Fn:
         '''
 
         # TODO implement
-
+    
+        # 2Do: All
+        
         pass
 
 if __name__ == '__main__':
