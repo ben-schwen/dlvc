@@ -39,13 +39,18 @@ def load_image(fpath: str) -> np.ndarray:
     if fpath = NAN:
         raise ValueError("FileNotFoundError")
         
-    2Do: Normalisieren    
+ 
     """
 
     from PIL import Image
-
-    img = Image.open(fpath)
-    return np.asarray(img)
+    from sklearn.preprocessing import MinMaxScaler
+    
+    img = np.asarray(Image.open(fpath)
+    scaler = MinMaxScaler()
+    scaler.fit(img)
+    img_norm = scaler.transform(img)
+    
+    return img_norm
 
 
 
