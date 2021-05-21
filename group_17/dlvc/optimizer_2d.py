@@ -97,7 +97,7 @@ class Fn:
         # You can simply round and map to integers. If so, make sure not to set eps and learning_rate too low
         # Alternatively, you can implement some form of interpolation (for example bilinear)
         
-        # 2Do: Sollen wir hier nur den Wert aus der Matrix auslesen?
+        return self[loc[0],loc[1]]
 
         pass
 
