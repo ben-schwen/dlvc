@@ -35,6 +35,14 @@ def vectorize() -> Op:
     return lambda x: np.ravel(x)
     # return lambda x: x.reshape(-1,  np.prod(np.shape(x)[1:]))
 
+def hwc2chw() -> Op:
+    '''
+    Flip a 3D array with shape HWC to shape CHW.
+    '''
+    # TODO implement (see np.transpose)
+    # return lambda x: np.einsum('hwc->chw', x)
+    return lambda x: np.transpose(x, (2, 0, 1))
+
 def add(val: float) -> Op:
     '''
     Add a scalar value to all array elements.
@@ -50,3 +58,29 @@ def mul(val: float) -> Op:
 
     # TODO implement (see above for guidance).
     return lambda x: x * val
+
+def hflip() -> Op:
+    '''
+    Flip arrays with shape HWC horizontally with a probability of 0.5.
+    '''
+
+    # TODO implement (numpy.flip will be helpful)
+    def op(sample: np.ndarray) -> np.ndarray:
+        if np.random.random() < 0.5:
+            return np.flip(sample, axis=1)
+        return sample
+
+    return op
+
+def rcrop(sz: int, pad: int, pad_mode: str) -> Op:
+    '''
+    Extract a square random crop of size sz from arrays with shape HWC.
+    If pad is > 0, the array is first padded by pad pixels along the top, left, bottom, and right.
+    How padding is done is governed by pad_mode, which should work exactly as the 'mode' argument of numpy.pad.
+    Raises ValueError if sz exceeds the array width/height after padding.
+    '''
+
+    # TODO implement
+    # https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.pad.html will be helpful
+
+    pass

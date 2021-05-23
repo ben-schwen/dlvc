@@ -1,4 +1,5 @@
 import typing
+import numpy as np
 
 from .dataset import Dataset
 from .ops import Op
@@ -38,8 +39,6 @@ class BatchGenerator:
         '''
 
         # TODO implement
-        import numpy as np
-
         if not isinstance(dataset, Dataset):
             raise TypeError('Invalid type for dataset. Expected:{}. Provided:{}.'.format(Dataset, type(dataset)))
         if not isinstance(num, int):
@@ -66,7 +65,7 @@ class BatchGenerator:
         '''
 
         # TODO implement
-        return self.num
+        return int(np.ceil(len(self.dataset) / self.num))
 
     def __iter__(self) -> typing.Iterable[Batch]:
         '''
@@ -74,7 +73,6 @@ class BatchGenerator:
         '''
         # TODO implement
         # The "yield" keyword makes this easier
-        import numpy as np
 
         split_points = range(0, len(self.dataset), self.num)[1:]
         batches_idx = np.split(self.idx, split_points)
