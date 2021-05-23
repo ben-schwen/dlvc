@@ -82,9 +82,30 @@ class Fn:
         if loc.x1 >= self.fn.shape[0] or loc.x2 >= self.fn.shape[1]:
             raise ValueError('Index out of bounds')
 
-        #q11 = self.fn[np.floor(loc.x1)]
+        # cuz of type fuckup and mixing of named tuple, tensor and numpy...
 
-        return self.fn[tuple(np.round(loc).astype('int'))]
+        x = loc[0]
+        y = loc[1]
+
+        if torch.is_tensor(x):
+            x = x.detach().numpy()
+        if torch.is_tensor(y):
+            y = y.detach().numpy()
+
+        x1 = np.floor(x).astype(int)
+        x2 = np.floor(x + 1).astype(int)
+        y1 = np.floor(y).astype(int)
+        y2 = np.floor(y + 1).astype(int)
+
+        q11 = self.fn[x1, y1]
+        q12 = self.fn[x1, y2]
+        q21 = self.fn[x2, y1]
+        q22 = self.fn[x2, y2]
+
+        return (1 / ((x2 - x1) * (y2 - y1)) * np.array([[x2 - x, x - x1]]) @ np.array([[q11, q12], [q21, q22]]) @ \
+               np.array([[y2 - y], [y - y1]]))[0][0]
+
+        #return self.fn[tuple(np.round(loc).astype('int'))]
 
     def grad(self, loc: Vec2) -> Vec2:
         '''
@@ -148,7 +169,7 @@ if __name__ == '__main__':
     epoch = 0
     epoch_max = 1000
     points = []
-    thresh = 1e-7
+    thresh = 1e-10
     while True:
         # Visualize each iteration by drawing on vis using e.g. cv2.line()
         # Find a suitable termination condition and break out of loop once done
@@ -168,8 +189,7 @@ if __name__ == '__main__':
 
         if epoch >= epoch_max or np.max(np.abs(gradient)) < thresh:
             print("Number of max epochs reached or gradient became too small")
-            print("Epochs: {}".format(epoch))
-            print("Max Epochs: {}".format(epoch_max))
+            print("Epochs: {} of maximum {} epochs".format(epoch, epoch_max))
             print("Gradient: {}".format(gradient))
             print("Minimum at: {}".format(loc.detach().numpy()))
             print("Minimum value: {}".format(fn(Vec2(loc[0].item(), loc[1].item()))))
@@ -178,3 +198,5 @@ if __name__ == '__main__':
         cv2.line(vis, start, end, color=[0,0,255], thickness=3)
         cv2.imshow('Progress', vis)
         cv2.waitKey(10)  # 20 fps, tune according to your liking
+
+# python optimizer_2d.py "/home/bschwendinger/github/dlvc/group_17/dlvc/fn/beale.png" 300 300 --learning_rate 10000 --beta 0.96 --nesterov
