@@ -8,12 +8,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dlvc.test import Accuracy
 import torch
+import os
+
 
 # 1. Load the training, validation, and test sets as individual PetsDatasets.
 
-fp = '/home/bschwendinger/github/cifar-10-python/cifar-10-batches-py/'
-#fp = '/caa/Student/dlvc/public/datasets/cifar-10/'
-# fp = 'C:\\Users\\fabia\\OneDrive\\Dokumente\\Uni\\Deep Learning for Visual Computing\\Assignment1\\Datensatz\\cifar-10-python'
+fp_ben = '/home/bschwendinger/github/cifar-10-python/cifar-10-batches-py/'
+fp_fab = 'C:\\Users\\fabia\\OneDrive\\Dokumente\\Uni\\Deep Learning for Visual Computing\\Assignment1\\Datensatz\\cifar-10-python'
+fp_server = '/caa/Student/dlvc/public/datasets/cifar-10/'
+
+if os.path.isdir(fp_server):
+    fp = fp_server
+elif os.path.isdir(fp_ben):
+    fp = fp_ben
+elif os.path.isdir(fp_fab):
+    fp = fp_fab
 
 print("Lade Bilder")
 train_ds = PetsDataset(fp, Subset.TRAINING)
@@ -33,7 +42,7 @@ op = ops.chain([
 # set seed for reproducibility
 np.random.seed(373)
 
-batch_size = 32
+batch_size = 16
 train_b = BatchGenerator(train_ds, batch_size, True, op)
 valid_b = BatchGenerator(valid_ds, 1024, True, op)
 test_b = BatchGenerator(test_ds, batch_size, False, op)
@@ -56,7 +65,7 @@ class Net(nn.Module):
     def __init__(self):
         super().__init__()
         # basic recipe
-        out_size = 64
+        out_size = 32
 
         self.conv1 = nn.Conv2d(3, out_size, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(out_size, out_size, kernel_size=3, stride=1, padding=1)
@@ -68,9 +77,14 @@ class Net(nn.Module):
         self.conv4 = nn.Conv2d(out_size, out_size, kernel_size=3, stride=1, padding=1)
 
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(int(32/2/2*32/2/2 * out_size), 2)
+        
+        size = int(32/2/2 * 32/2/2 * out_size)
+        self.fc1 = nn.Linear(size, 2)
+
+        self.dropout = nn.Dropout(0.5)
 
         self.out_size = out_size
+
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -94,7 +108,7 @@ if torch.cuda.is_available():
 print("== Training from scratch ===")
 clf = CnnClassifier(net, (0,3,32,32), 2, lr=0.001, wd=0)
 
-for epoch in range(50):
+for epoch in range(100):
     print("epoch {}".format(epoch))
 
     losses = []
