@@ -8,11 +8,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dlvc.test import Accuracy
 import torch
+import torchvision
+from torchvision import models
 
 # 1. Load the training, validation, and test sets as individual PetsDatasets.
 
 fp = '/home/bschwendinger/github/cifar-10-python/cifar-10-batches-py/'
-#fp = '/caa/Student/dlvc/public/datasets/cifar-10/'
+# fp = '/caa/Student/dlvc/public/datasets/cifar-10/'
 # fp = 'C:\\Users\\fabia\\OneDrive\\Dokumente\\Uni\\Deep Learning for Visual Computing\\Assignment1\\Datensatz\\cifar-10-python'
 
 print("Lade Bilder")
@@ -50,7 +52,13 @@ def imshow(inp, title=None):
     plt.imshow(inp)
     if title is not None:
         plt.title(title)
-    plt.pause(0.001)
+    plt.pause(0.001)  # pause a bit so that plots are updated
+
+
+# b = next(iter(train_b))
+# inputs, classes = torch.from_numpy(b.data), torch.from_numpy(b.label)
+# out = torchvision.utils.make_grid(inputs)
+# imshow(out, title=[int(x) for x in classes])
 
 class Net(nn.Module):
     def __init__(self):
@@ -88,8 +96,10 @@ class Net(nn.Module):
 
 net = Net()
 
-if torch.cuda.is_available():
-    net = net.cuda()
+# b = next(iter(train_b))
+# data = torch.from_numpy(b.data).float()
+# labels = torch.from_numpy(b.label).long()
+# net.forward(data)
 
 print("== Training from scratch ===")
 clf = CnnClassifier(net, (0,3,32,32), 2, lr=0.001, wd=0)
@@ -108,3 +118,35 @@ for epoch in range(50):
         acc.update(clf.predict(batch.data), batch.label)
     print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))
 
+
+
+print("Transfer learning")
+resnet = models.resnet34(pretrained=True)
+for name, param in resnet.named_parameters():
+    if "bn" not in name:
+        param.requires_grad = False
+num_ftrs = resnet.fc.in_features
+num_classes = 2
+
+resnet.fc = nn.Sequential(nn.Linear(num_ftrs, 512),
+                          nn.ReLU(),
+                          nn.Dropout(),
+                          nn.Linear(512, num_classes))
+
+if torch.cuda.is_available():
+    resnet = resnet.cuda()
+
+clf = CnnClassifier(resnet, (0, 3, 32, 32), 2, lr=1e-4, wd=0.01)
+for epoch in range(100):
+    print("epoch {}".format(epoch))
+
+    losses = []
+    for batch in iter(train_b):
+        losses.append(clf.train(batch.data, batch.label))
+    losses = np.array(losses)
+    print("\ttrain loss: {:.3f} +- {:.3f}".format(losses.mean(), losses.std()))
+
+    acc = Accuracy()
+    for batch in iter(valid_b):
+        acc.update(clf.predict(batch.data), batch.label)
+    print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))

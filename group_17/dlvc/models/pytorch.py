@@ -56,11 +56,10 @@ class CnnClassifier(Model):
         self.lr = lr
         self.wd = wd
 
-        if next(net.parameters()).is_cuda:
-            self.net = self.net.cuda()
+        self.cuda = next(net.parameters()).is_cuda
 
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.SGD(self.net.parameters(), lr=self.lr, weight_decay=self.wd)
+        self.optimizer = optim.SGD(self.net.parameters(), lr=self.lr, weight_decay=self.wd, momentum=0.9, nesterov=True)
 
     def input_shape(self) -> tuple:
         '''
@@ -109,9 +108,12 @@ class CnnClassifier(Model):
         labels = (torch.from_numpy(labels)).long()
 
         # transfer to cuda
-        if next(self.net.parameters()).is_cuda:
-            data = data.to('cuda')
-            labels = labels.to('cuda')
+        if self.cuda:
+            data = data.cuda()
+            labels = labels.cuda()
+        else:
+            data = data.cpu()
+            labels = labels.cpu()
 
         # forward pass
         output = self.net(data)
@@ -144,15 +146,15 @@ class CnnClassifier(Model):
         data = (torch.from_numpy(data)).float()
 
         # transfer to cuda
-        if next(self.net.parameters()).is_cuda:
-            data = data.to('cuda')
+        if self.cuda:
+            data = data.cuda()
+        else:
+            data = data.cpu()
 
         output = self.net(data)
         softmax = nn.Softmax(dim=1)
 
         # transfer back to cpu
         ans = softmax(output)
-        if next(self.net.parameters()).is_cuda:
-            ans = ans.cpu()
 
-        return ans.detach().numpy()
+        return ans.cpu().detach().numpy()

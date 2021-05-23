@@ -82,5 +82,16 @@ def rcrop(sz: int, pad: int, pad_mode: str) -> Op:
 
     # TODO implement
     # https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.pad.html will be helpful
+    # https://pytorch.org/vision/stable/_modules/torchvision/transforms/transforms.html#RandomCrop is more helpful
+    def op(sample: np.ndarray) -> np.ndarray:
+        if pad > 0:
+            sample = np.pad(sample, ((pad, pad), (pad, pad)), pad_mode)
+        w, h = sample.shape
+        if sz > w or sz > h:
+            raise ValueError("Required crop size {} is larger then padded input image size {}".format((sz, sz), (w, h)))
 
-    pass
+        i = np.random.randint(0, w-sz)
+        j = np.random.randint(0, h-sz)
+        return sample[i:(i+sz), j:(j+sz), ]
+
+    return op
