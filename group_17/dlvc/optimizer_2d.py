@@ -1,7 +1,6 @@
 import os
 from collections import namedtuple
 
-import PIL.GifImagePlugin
 import cv2
 import numpy as np
 import torch
@@ -35,24 +34,12 @@ def load_image(fpath: str) -> np.ndarray:
     '''
 
     # TODO implement
-    """
-    if fpath = NAN:
-        raise ValueError("FileNotFoundError")
-        
- 
-    """
+    if not os.path.isfile(fpath):
+        raise FileNotFoundError()
 
-    from PIL import Image
-    from sklearn.preprocessing import MinMaxScaler
-    
-    img = np.asarray(Image.open(fpath)
-    scaler = MinMaxScaler()
-    scaler.fit(img)
-    img_norm = scaler.transform(img)
-    
-    return img_norm
-
-
+    img = cv2.imread(fpath, cv2.IMREAD_UNCHANGED)
+    img = cv2.normalize(img, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    return img
 
 class Fn:
     '''
@@ -74,18 +61,12 @@ class Fn:
         '''
 
         # TODO implement
-        # 2Do: wenn ich das image neu auslese gehts, schaffe es noch nicht aus dem Array 
-        
-        # img_grey = cv2.imread(fpath, cv2.IMREAD_GRAYSCALE)
-        img_grey = cv2.imshow(self)                              #Kriege das Image nicht aus dem Array, versuche es weiter;)
-        im_color = cv2.applyColorMap(img_grey, cv2.COLORMAP_JET)
-        """
-        plt.imshow(im_color)
-        plt.show()
-        """
-        
+        img_grey = self.fn
+        img = img_grey * 255
+        img = img.astype(np.uint8)
+        img_color = cv2.applyColorMap(img, cv2.COLORMAP_JET)
 
-        pass
+        return img_color
 
     def __call__(self, loc: Vec2) -> float:
         '''
@@ -96,10 +77,14 @@ class Fn:
         # TODO implement
         # You can simply round and map to integers. If so, make sure not to set eps and learning_rate too low
         # Alternatively, you can implement some form of interpolation (for example bilinear)
-        
-        return self[loc[0],loc[1]]
+        if loc.x1 < 0 or loc.x2 < 0:
+            raise ValueError('Index out of bounds')
+        if loc.x1 >= self.fn.shape[0] or loc.x2 >= self.fn.shape[1]:
+            raise ValueError('Index out of bounds')
 
-        pass
+        #q11 = self.fn[np.floor(loc.x1)]
+
+        return self.fn[tuple(np.round(loc).astype('int'))]
 
     def grad(self, loc: Vec2) -> Vec2:
         '''
@@ -108,10 +93,20 @@ class Fn:
         '''
 
         # TODO implement
-    
-        # 2Do: All
-        
-        pass
+        if self.eps <= 0:
+            raise ValueError('eps =< 0.')
+        # double the code because of bad requirements
+        if loc.x1 < 0 or loc.x2 < 0:
+            raise ValueError('Index out of bounds')
+        if loc.x1 >= self.fn.shape[0] or loc.x2 >= self.fn.shape[1]:
+            raise ValueError('Index out of bounds')
+
+        x1 = (fn(Vec2(loc.x1 + self.eps, loc.x2)) - fn(Vec2(loc.x1 - self.eps, loc.x2))) / (2 * self.eps)
+        x2 = (fn(Vec2(loc.x1, loc.x2 + self.eps)) - fn(Vec2(loc.x1, loc.x2 - self.eps))) / (2 * self.eps)
+
+        return Vec2(x1, x2)
+
+
 
 if __name__ == '__main__':
     # Parse args
@@ -127,6 +122,18 @@ if __name__ == '__main__':
     parser.add_argument('--nesterov', action='store_true', help='Use Nesterov momentum')
     args = parser.parse_args()
 
+    # REPL
+    # class Object(object):
+    #     pass
+    # args = Object()
+    # args.fpath = '/home/bschwendinger/github/dlvc/group_17/dlvc/fn/beale.png'
+    # args.sx1 = 300.0
+    # args.sx2 = 300.0
+    # args.eps = 1.0
+    # args.learning_rate = 3000
+    # args.beta = 0
+    # args.nesterov = False
+
     # Init
     image_fn = load_image(args.fpath)
     fn = Fn(image_fn, args.eps)
@@ -138,13 +145,36 @@ if __name__ == '__main__':
 
     # Find a minimum in fn using a PyTorch optimizer
     # See https://pytorch.org/docs/stable/optim.html for how to use optimizers
+    epoch = 0
+    epoch_max = 1000
+    points = []
+    thresh = 1e-7
     while True:
         # Visualize each iteration by drawing on vis using e.g. cv2.line()
         # Find a suitable termination condition and break out of loop once done
-
         # This returns the value of the function fn at location loc.
         # Since we are trying to find a minimum of the function this acts as a loss value.
         # loss = AutogradFn.apply(fn, loc)
+        epoch += 1
+        start = tuple(np.rint(loc.detach().numpy()).astype('uint16'))
 
+        optimizer.zero_grad()
+        gradient = fn.grad(Vec2(loc.data[0], loc.data[1]))
+        loss = AutogradFn.apply(fn, loc)
+        loss.backward()
+        optimizer.step()
+
+        end = tuple(np.rint(loc.detach().numpy()).astype('uint16'))
+
+        if epoch >= epoch_max or np.max(np.abs(gradient)) < thresh:
+            print("Number of max epochs reached or gradient became too small")
+            print("Epochs: {}".format(epoch))
+            print("Max Epochs: {}".format(epoch_max))
+            print("Gradient: {}".format(gradient))
+            print("Minimum at: {}".format(loc.detach().numpy()))
+            print("Minimum value: {}".format(fn(Vec2(loc[0].item(), loc[1].item()))))
+            break
+
+        cv2.line(vis, start, end, color=[0,0,255], thickness=3)
         cv2.imshow('Progress', vis)
-        cv2.waitKey(50)  # 20 fps, tune according to your liking
+        cv2.waitKey(10)  # 20 fps, tune according to your liking
