@@ -95,3 +95,33 @@ def rcrop(sz: int, pad: int, pad_mode: str) -> Op:
         return sample[i:(i+sz), j:(j+sz), :]
 
     return op
+
+def vflip() -> Op:
+    '''
+    Flip arrays with shape HWC vertically with a probability of 0.5.
+    '''
+
+    # TODO implement (numpy.flip will be helpful)
+    def op(sample: np.ndarray) -> np.ndarray:
+        if np.random.random() < 0.5:
+            return np.flip(sample, axis=2)
+        return sample
+
+    return op
+
+def rotate90() -> Op:
+    '''
+    Rotate arrays with shape HWC left or right 90% with a probability of 0.25 each.
+    '''
+
+    # TODO implement (numpy.flip will be helpful)
+    def op(sample: np.ndarray) -> np.ndarray:
+        if np.random.random() < 0.5:
+            if np.random.random() < 0.5:
+                return np.rot90(sample, k=1, axes=(0, 1))
+            else:
+                return np.rot90(sample, k=3, axes=(0, 1))
+        return sample
+
+    return op
+

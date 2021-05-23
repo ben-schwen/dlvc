@@ -37,6 +37,7 @@ op = ops.chain([
     ops.add(-127.5),
     ops.mul(1 / 127.5),
     ops.hflip(),
+    ops.rotate90(),
     ops.rcrop(32, 4, pad_mode='constant'),
     ops.hwc2chw()
 ])
@@ -82,7 +83,7 @@ class Net(nn.Module):
 
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        size = int(32 / 2 / 2 * 32 / 2 / 2 * out_size)
+        size = int(8 * 8 * out_size)
         self.fc1 = nn.Linear(size, 2)
 
         self.dropout = nn.Dropout(0.5)
@@ -98,7 +99,8 @@ class Net(nn.Module):
         x = F.relu(self.conv4(x))
         x = self.pool(x)
 
-        x = x.view(-1, int(32 / 2 / 2 * 32 / 2 / 2 * self.out_size))
+        x = x.view(-1, int(8 * 8 * self.out_size))
+        x = self.dropout(x)
         x = F.relu(self.fc1(x))
         return x
 
