@@ -37,7 +37,7 @@ op = ops.chain([
     ops.add(-127.5),
     ops.mul(1 / 127.5),
     ops.hflip(),
-    ops.rotate90(),
+    #ops.rotate90(),
     ops.rcrop(32, 4, pad_mode='constant'),
     ops.hwc2chw()
 ])
@@ -70,7 +70,7 @@ class Net(nn.Module):
     def __init__(self):
         super().__init__()
         # basic recipe
-        out_size = 32
+        out_size = 64
 
         self.conv1 = nn.Conv2d(3, out_size, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(out_size, out_size, kernel_size=3, stride=1, padding=1)
@@ -86,7 +86,7 @@ class Net(nn.Module):
         size = int(8 * 8 * out_size)
         self.fc1 = nn.Linear(size, 2)
 
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.2)
 
         self.out_size = out_size
 
@@ -110,40 +110,9 @@ net = Net()
 if torch.cuda.is_available():
     net = net.cuda()
 
-print("== Training from scratch ===")
-clf = CnnClassifier(net, (0, 3, 32, 32), 2, lr=0.001, wd=0)
-
-for epoch in range(100):
-    print("epoch {}".format(epoch))
-
-    losses = []
-    for batch in iter(train_b):
-        losses.append(clf.train(batch.data, batch.label))
-    losses = np.array(losses)
-    print("\ttrain loss: {:.3f} +- {:.3f}".format(losses.mean(), losses.std()))
-
-    acc = Accuracy()
-    for batch in iter(valid_b):
-        acc.update(clf.predict(batch.data), batch.label)
-    print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))
+# print("== Training from scratch ===")
+# clf = CnnClassifier(net, (0, 3, 32, 32), 2, lr=0.001, wd=0)
 #
-# print("Transfer learning")
-# resnet = models.resnet34(pretrained=True)
-# for name, param in resnet.named_parameters():
-#     if "bn" not in name:
-#         param.requires_grad = False
-# num_ftrs = resnet.fc.in_features
-# num_classes = 2
-#
-# resnet.fc = nn.Sequential(nn.Linear(num_ftrs, 512),
-#                           nn.ReLU(),
-#                           nn.Dropout(),
-#                           nn.Linear(512, num_classes))
-#
-# if torch.cuda.is_available():
-#     resnet = resnet.cuda()
-#
-# clf = CnnClassifier(resnet, (0, 3, 32, 32), 2, lr=1e-4, wd=0.01)
 # for epoch in range(100):
 #     print("epoch {}".format(epoch))
 #
@@ -157,3 +126,34 @@ for epoch in range(100):
 #     for batch in iter(valid_b):
 #         acc.update(clf.predict(batch.data), batch.label)
 #     print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))
+#
+print("Transfer learning")
+net = models.resnet101(pretrained=True)
+for name, param in net.named_parameters():
+    if "bn" not in name:
+        param.requires_grad = False
+num_ftrs = net.fc.in_features
+num_classes = 2
+
+net.fc = nn.Sequential(nn.Linear(num_ftrs, 512),
+                          nn.ReLU(),
+                          nn.Dropout(),
+                          nn.Linear(512, num_classes))
+
+if torch.cuda.is_available():
+    net = net.cuda()
+
+clf = CnnClassifier(net, (0, 3, 32, 32), 2, lr=0.001, wd=0)
+for epoch in range(100):
+    print("epoch {}".format(epoch))
+
+    losses = []
+    for batch in iter(train_b):
+        losses.append(clf.train(batch.data, batch.label))
+    losses = np.array(losses)
+    print("\ttrain loss: {:.3f} +- {:.3f}".format(losses.mean(), losses.std()))
+
+    acc = Accuracy()
+    for batch in iter(valid_b):
+        acc.update(clf.predict(batch.data), batch.label)
+    print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))
