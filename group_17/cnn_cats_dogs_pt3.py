@@ -1,4 +1,6 @@
-from dlvc.batches import BatchGenerator
+import cv2
+
+from dlvc.batches import BatchGenerator, Batch
 from dlvc.dataset import Subset
 from dlvc.datasets.pets import PetsDataset
 import dlvc.ops as ops
@@ -33,37 +35,40 @@ print("Bilder geladen")
 # 2. Create a BatchGenerator for each one. Traditional classifiers don't usually train in batches so you can set the
 # minibatch size equal to the number of dataset samples to get a single large batch - unless you choose a classifier
 # that does require multiple batches.
-op = ops.chain([
+ops_train = ops.chain([
     ops.add(-127.5),
     ops.mul(1 / 127.5),
     ops.hflip(),
-    #ops.rotate90(),
-    ops.rcrop(32, 4, pad_mode='constant'),
+    ops.rotate90(),
+    ops.rcrop(32, 4, pad_mode='median'),
+    ops.hwc2chw()
+])
+
+ops_val = ops.chain([
+    ops.add(-127.5),
+    ops.mul(1 / 127.5),
     ops.hwc2chw()
 ])
 
 # set seed for reproducibility
 np.random.seed(373)
 
-batch_size = 64
-train_b = BatchGenerator(train_ds, batch_size, True, op)
-valid_b = BatchGenerator(valid_ds, 1024, True, op)
-test_b = BatchGenerator(test_ds, batch_size, False, op)
+batch_size = 32
+train_b = BatchGenerator(train_ds, batch_size, True, ops_train)
+valid_b = BatchGenerator(valid_ds, batch_size, True, ops_val)
+test_b = BatchGenerator(test_ds, batch_size, False, ops_val)
 
 
-# View images
-def imshow(inp, title=None):
-    import matplotlib.pyplot as plt
-    """Imshow for Tensor."""
-    inp = inp.numpy().transpose((1, 2, 0))
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    inp = std * inp + mean
-    inp = np.clip(inp, 0, 1)
-    plt.imshow(inp)
-    if title is not None:
-        plt.title(title)
-    plt.pause(0.001)
+# def imshow(batch : Batch):
+#     img = np.hstack(batch.data)
+#     cv2.imshow("Image", img)
+#     cv2.waitKey(10)
+#
+# batch = next(iter(train_b))
+# imshow(batch)
+# import cv2
+# cv2.imshow("ImageWindow", batch.data[7])
+# cv2.waitKey(10)
 
 
 class Net(nn.Module):
@@ -72,36 +77,35 @@ class Net(nn.Module):
         # basic recipe
         out_size = 64
 
-        self.conv1 = nn.Conv2d(3, out_size, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(out_size, out_size, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(3, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv2 = nn.Conv2d(out_size, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.batch1 = nn.BatchNorm2d(out_size)
 
         in_size = out_size
         out_size *= 2
 
-        self.conv3 = nn.Conv2d(in_size, out_size, kernel_size=3, stride=1, padding=1)
-        self.conv4 = nn.Conv2d(out_size, out_size, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_size, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv4 = nn.Conv2d(out_size, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.batch2 = nn.BatchNorm2d(out_size)
 
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.pool = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
 
         size = int(8 * 8 * out_size)
         self.fc1 = nn.Linear(size, 2)
-
-        self.dropout = nn.Dropout(0.2)
 
         self.out_size = out_size
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
+        x = F.relu(self.batch1(self.conv2(x)))
         x = self.pool(x)
 
         x = F.relu(self.conv3(x))
-        x = F.relu(self.conv4(x))
+        x = F.relu(self.batch2(self.conv4(x)))
         x = self.pool(x)
 
         x = x.view(-1, int(8 * 8 * self.out_size))
-        x = self.dropout(x)
-        x = F.relu(self.fc1(x))
+        x = self.fc1(x)
         return x
 
 
@@ -126,25 +130,23 @@ if torch.cuda.is_available():
 #     for batch in iter(valid_b):
 #         acc.update(clf.predict(batch.data), batch.label)
 #     print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))
-#
+
 print("Transfer learning")
-net = models.resnet101(pretrained=True)
-for name, param in net.named_parameters():
-    if "bn" not in name:
-        param.requires_grad = False
+# net = models.wide_resnet50_2(pretrained=True)
+# for name, param in net.named_parameters():
+#     if "bn" not in name:
+#         param.requires_grad = False
+net = models.resnet18(pretrained=True)
 num_ftrs = net.fc.in_features
 num_classes = 2
 
-net.fc = nn.Sequential(nn.Linear(num_ftrs, 512),
-                          nn.ReLU(),
-                          nn.Dropout(),
-                          nn.Linear(512, num_classes))
+net.fc = nn.Sequential(nn.Linear(num_ftrs, num_classes))
 
 if torch.cuda.is_available():
     net = net.cuda()
 
-clf = CnnClassifier(net, (0, 3, 32, 32), 2, lr=0.001, wd=0)
-for epoch in range(100):
+clf = CnnClassifier(net, (0, 3, 32, 32), 2, lr=0.001, wd=0, upsample=8)
+for epoch in range(30):
     print("epoch {}".format(epoch))
 
     losses = []

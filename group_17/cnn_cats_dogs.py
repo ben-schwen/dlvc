@@ -47,44 +47,27 @@ train_b = BatchGenerator(train_ds, batch_size, True, op)
 valid_b = BatchGenerator(valid_ds, 1024, True, op)
 test_b = BatchGenerator(test_ds, batch_size, False, op)
 
-# View images
-def imshow(inp, title=None):
-    import matplotlib.pyplot as plt
-    """Imshow for Tensor."""
-    inp = inp.numpy().transpose((1, 2, 0))
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    inp = std * inp + mean
-    inp = np.clip(inp, 0, 1)
-    plt.imshow(inp)
-    if title is not None:
-        plt.title(title)
-    plt.pause(0.001)
-
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
         # basic recipe
-        out_size = 32
+        out_size = 64
 
-        self.conv1 = nn.Conv2d(3, out_size, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(out_size, out_size, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(3, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv2 = nn.Conv2d(out_size, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
 
         in_size = out_size
         out_size *= 2
 
-        self.conv3 = nn.Conv2d(in_size, out_size, kernel_size=3, stride=1, padding=1)
-        self.conv4 = nn.Conv2d(out_size, out_size, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_size, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv4 = nn.Conv2d(out_size, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
 
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        
-        size = int(32/2/2 * 32/2/2 * out_size)
+        self.pool = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+
+        size = int(8 * 8 * out_size)
         self.fc1 = nn.Linear(size, 2)
 
-        self.dropout = nn.Dropout(0.5)
-
         self.out_size = out_size
-
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -95,8 +78,8 @@ class Net(nn.Module):
         x = F.relu(self.conv4(x))
         x = self.pool(x)
 
-        x = x.view(-1, int(32/2/2*32/2/2 * self.out_size))
-        x = F.relu(self.fc1(x))
+        x = x.view(-1, int(8 * 8 * self.out_size))
+        x = self.fc1(x)
         return x
 
 
