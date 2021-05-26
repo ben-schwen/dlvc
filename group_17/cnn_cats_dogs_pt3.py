@@ -1,4 +1,5 @@
 import cv2
+import matplotlib.pyplot as plt
 
 from dlvc.batches import BatchGenerator, Batch
 from dlvc.dataset import Subset
@@ -12,6 +13,8 @@ from dlvc.test import Accuracy
 import torch
 import os
 from torchvision import models
+from torch.autograd import Variable
+import torchvision
 
 # 1. Load the training, validation, and test sets as individual PetsDatasets.
 
@@ -40,7 +43,8 @@ ops_train = ops.chain([
     ops.mul(1 / 127.5),
     ops.hflip(),
     ops.rotate90(),
-    ops.rcrop(32, 4, pad_mode='median'),
+    ops.rcrop(32, 10, pad_mode='reflect'),
+    ops.rerase(sh=0.4),
     ops.hwc2chw()
 ])
 
@@ -53,23 +57,16 @@ ops_val = ops.chain([
 # set seed for reproducibility
 np.random.seed(373)
 
-batch_size = 32
+batch_size = 64
 train_b = BatchGenerator(train_ds, batch_size, True, ops_train)
 valid_b = BatchGenerator(valid_ds, batch_size, True, ops_val)
 test_b = BatchGenerator(test_ds, batch_size, False, ops_val)
 
-
-# def imshow(batch : Batch):
-#     img = np.hstack(batch.data)
-#     cv2.imshow("Image", img)
-#     cv2.waitKey(10)
-#
 # batch = next(iter(train_b))
-# imshow(batch)
-# import cv2
-# cv2.imshow("ImageWindow", batch.data[7])
-# cv2.waitKey(10)
-
+#
+# sample = batch.data[10]
+# plt.imshow(np.transpose(sample, (1,2,0)))
+# plt.show()
 
 class Net(nn.Module):
     def __init__(self):
@@ -113,7 +110,7 @@ net = Net()
 
 if torch.cuda.is_available():
     net = net.cuda()
-
+#
 # print("== Training from scratch ===")
 # clf = CnnClassifier(net, (0, 3, 32, 32), 2, lr=0.001, wd=0)
 #
@@ -132,21 +129,24 @@ if torch.cuda.is_available():
 #     print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))
 
 print("Transfer learning")
-# net = models.wide_resnet50_2(pretrained=True)
+# feature extraction
 # for name, param in net.named_parameters():
 #     if "bn" not in name:
 #         param.requires_grad = False
+
+# finetuning
 net = models.resnet18(pretrained=True)
 num_ftrs = net.fc.in_features
 num_classes = 2
-
 net.fc = nn.Sequential(nn.Linear(num_ftrs, num_classes))
 
 if torch.cuda.is_available():
     net = net.cuda()
 
-clf = CnnClassifier(net, (0, 3, 32, 32), 2, lr=0.001, wd=0, upsample=8)
-for epoch in range(30):
+clf = CnnClassifier(net, (0, 3, 32, 32), 2, lr=0.001, wd=0.01, size=224)
+
+best_acc = 0
+for epoch in range(2):
     print("epoch {}".format(epoch))
 
     losses = []
@@ -159,3 +159,16 @@ for epoch in range(30):
     for batch in iter(valid_b):
         acc.update(clf.predict(batch.data), batch.label)
     print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))
+    if acc.accuracy() > best_acc:
+        best_acc = acc.accuracy()
+        torch.save(clf.net, 'best_model.pt')
+
+best_model = torch.load('best_model.pt')
+if torch.cuda.is_available():
+    best_model = best_model.cuda()
+clf.net = best_model
+
+acc = Accuracy()
+for batch in iter(test_b):
+    acc.update(clf.predict(batch.data), batch.label)
+print("\ttest acc: accuracy: {:.3f}".format(acc.accuracy()))

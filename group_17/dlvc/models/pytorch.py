@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import optim
 
 from ..model import Model
@@ -14,7 +15,7 @@ class CnnClassifier(Model):
     The cross-entropy loss (torch.nn.CrossEntropyLoss) and SGD (torch.optim.SGD) are used for training.
     '''
 
-    def __init__(self, net: nn.Module, input_shape: tuple, num_classes: int, lr: float, wd: float, upsample: int = 0):
+    def __init__(self, net: nn.Module, input_shape: tuple, num_classes: int, lr: float, wd: float, size: int = 0):
         '''
         Ctor.
         net is the cnn to wrap. see above comments for requirements.
@@ -60,7 +61,7 @@ class CnnClassifier(Model):
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(self.net.parameters(), lr=self.lr, weight_decay=self.wd, momentum=0.9, nesterov=True)
-        self.upsample = upsample
+        self.size = size
 
     def input_shape(self) -> tuple:
         '''
@@ -116,10 +117,9 @@ class CnnClassifier(Model):
             data = data.cpu()
             labels = labels.cpu()
 
-        # upsample for transfer learning
-        if self.upsample > 0:
-            m = nn.Upsample(scale_factor=self.upsample, mode='nearest')
-            data = m(data)
+        # interpolate for transfer learning
+        if self.size > 0:
+            data = F.interpolate(data, size=self.size, mode='nearest')
 
         # forward pass
         output = self.net(data)
@@ -157,10 +157,9 @@ class CnnClassifier(Model):
         else:
             data = data.cpu()
 
-        # upsample for transfer learning
-        if self.upsample > 0:
-            m = nn.Upsample(scale_factor=self.upsample, mode='nearest')
-            data = m(data)
+        # interpolate for transfer learning
+        if self.size > 0:
+            data = F.interpolate(data, size=self.size, mode='nearest')
 
         output = self.net(data)
         softmax = nn.Softmax(dim=1)

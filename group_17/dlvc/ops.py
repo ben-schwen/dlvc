@@ -125,3 +125,35 @@ def rotate90() -> Op:
 
     return op
 
+def rerase(p=.5, sl=0.02, sh=0.4, r1=0.3, pixel_level=True) -> Op:
+    """
+    p: probability that erase operation takes place
+    sl: min erased area
+    sh: max erased area
+    r1: min aspect ratio
+    pixel_level: erased area is replaced pixel by pixel or with a single color
+    """
+    def op(sample: np.ndarray) -> np.ndarray:
+        if np.random.uniform(0, 1) > p:
+            return sample
+
+        img_h, img_w, img_c = sample.shape
+
+        for attempt in range(100):
+            s = np.random.uniform(sl, sh) * img_h * img_w
+            r = np.random.uniform(r1, 1/r1)
+
+            h = int(np.sqrt(s * r))
+            w = int(np.sqrt(s / r))
+
+            if w < img_w and h < img_h:
+                left = np.random.randint(0, img_w - w)
+                top = np.random.randint(0, img_h - h)
+                if pixel_level:
+                    c = np.random.uniform(-1, 1, (h, w, img_c))
+                else:
+                    c = np.random.uniform(-1, 1)
+                sample[top:top+h, left:left+w] = c
+                break
+        return sample
+    return op
