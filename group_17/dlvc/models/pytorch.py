@@ -102,36 +102,39 @@ class CnnClassifier(Model):
         if data.shape[0] != labels.shape[0]:
             raise ValueError('Shapes of data and label differ')
 
-        self.net.train()
-        self.optimizer.zero_grad()
+        try:
+            self.net.train()
+            self.optimizer.zero_grad()
 
-        # convert data to tensor
-        data = (torch.from_numpy(data)).float()
-        labels = (torch.from_numpy(labels)).long()
+            # convert data to tensor
+            data = (torch.from_numpy(data)).float()
+            labels = (torch.from_numpy(labels)).long()
 
-        # transfer to cuda
-        if self.cuda:
-            data = data.cuda()
-            labels = labels.cuda()
-        else:
-            data = data.cpu()
-            labels = labels.cpu()
+            # transfer to cuda
+            if self.cuda:
+                data = data.cuda()
+                labels = labels.cuda()
+            else:
+                data = data.cpu()
+                labels = labels.cpu()
 
-        # interpolate for transfer learning
-        if self.size > 0:
-            data = F.interpolate(data, size=self.size, mode='nearest')
+            # interpolate for transfer learning
+            if self.size > 0:
+                data = F.interpolate(data, size=self.size, mode='nearest')
 
-        # forward pass
-        output = self.net(data)
-        loss = self.criterion(output, labels)
+            # forward pass
+            output = self.net(data)
+            loss = self.criterion(output, labels)
 
-        # backward pass
-        loss.backward()
-        self.optimizer.step()
+            # backward pass
+            loss.backward()
+            self.optimizer.step()
 
-        self.net.eval()
-
-        return loss.item()
+            return loss.item()
+        except:
+            raise RuntimeError("Guess what, a runtime error happened.\n"
+                               "But since I have no clue about error handling,"
+                               "all you get is this lame error message.")
 
     def predict(self, data: np.ndarray) -> np.ndarray:
         '''
@@ -148,23 +151,32 @@ class CnnClassifier(Model):
         # Pass the network's predictions through a nn.Softmax layer to obtain softmax class scores
         # Make sure to set the network to eval() mode
         # See above comments on CPU/GPU
+        if not isinstance(data, np.ndarray):
+            raise TypeError('data is not of type np.ndarray')
 
-        data = (torch.from_numpy(data)).float()
+        try:
+            self.net.eval()
 
-        # transfer to cuda
-        if self.cuda:
-            data = data.cuda()
-        else:
-            data = data.cpu()
+            data = (torch.from_numpy(data)).float()
 
-        # interpolate for transfer learning
-        if self.size > 0:
-            data = F.interpolate(data, size=self.size, mode='nearest')
+            # transfer to cuda
+            if self.cuda:
+                data = data.cuda()
+            else:
+                data = data.cpu()
 
-        output = self.net(data)
-        softmax = nn.Softmax(dim=1)
+            # interpolate for transfer learning
+            if self.size > 0:
+                data = F.interpolate(data, size=self.size, mode='nearest')
 
-        # transfer back to cpu
-        ans = softmax(output)
+            output = self.net(data)
+            softmax = nn.Softmax(dim=1)
 
-        return ans.cpu().detach().numpy()
+            # transfer back to cpu
+            ans = softmax(output)
+
+            return ans.cpu().detach().numpy()
+        except:
+            raise RuntimeError("Guess what, a runtime error happened.\n"
+                               "But since I have no clue about error handling,"
+                               "all you get is this lame error message.")
