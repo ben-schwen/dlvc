@@ -133,7 +133,7 @@ class CnnClassifier(Model):
             return loss.item()
         except:
             raise RuntimeError("Guess what, a runtime error happened.\n"
-                               "But since I have no clue about error handling,"
+                               "But since I have no clue about error handling, "
                                "all you get is this lame error message.")
 
     def predict(self, data: np.ndarray) -> np.ndarray:
@@ -178,5 +178,5 @@ class CnnClassifier(Model):
             return ans.cpu().detach().numpy()
         except:
             raise RuntimeError("Guess what, a runtime error happened.\n"
-                               "But since I have no clue about error handling,"
+                               "But since I have no clue about error handling, "
                                "all you get is this lame error message.")
