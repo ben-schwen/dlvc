@@ -56,6 +56,7 @@ class BatchGenerator:
 
         self.idx = np.arange(len(self.dataset))
         if shuffle:
+            self.shuffle = True
             np.random.shuffle(self.idx)
 
     def __len__(self) -> int:
@@ -73,6 +74,8 @@ class BatchGenerator:
         '''
         # TODO implement
         # The "yield" keyword makes this easier
+        if self.shuffle:
+            np.random.shuffle(self.idx)
 
         split_points = range(0, len(self.dataset), self.num)[1:]
         batches_idx = np.split(self.idx, split_points)
