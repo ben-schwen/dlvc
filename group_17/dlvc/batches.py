@@ -55,9 +55,11 @@ class BatchGenerator:
         self.op = op
 
         self.idx = np.arange(len(self.dataset))
+        self.shuffle = shuffle
+
         if shuffle:
-            self.shuffle = True
             np.random.shuffle(self.idx)
+
 
     def __len__(self) -> int:
         '''
