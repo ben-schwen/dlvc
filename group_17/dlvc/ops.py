@@ -117,11 +117,12 @@ def rotate90() -> Op:
     # TODO implement (numpy.flip will be helpful)
     def op(sample: np.ndarray) -> np.ndarray:
         if np.random.random() < 0.5:
-            if np.random.random() < 0.5:
-                return np.rot90(sample, k=1, axes=(0, 1))
-            else:
-                return np.rot90(sample, k=3, axes=(0, 1))
-        return sample
+            return sample
+
+        if np.random.random() < 0.5:
+            return np.rot90(sample, k=1, axes=(0, 1))
+        else:
+            return np.rot90(sample, k=3, axes=(0, 1))
 
     return op
 
@@ -134,7 +135,7 @@ def rerase(p=.5, sl=0.02, sh=0.4, r1=0.3, pixel_level=True) -> Op:
     pixel_level: erased area is replaced pixel by pixel or with a single color
     """
     def op(sample: np.ndarray) -> np.ndarray:
-        if np.random.uniform(0, 1) > p:
+        if np.random.random() > p:
             return sample
 
         img_h, img_w, img_c = sample.shape
@@ -156,4 +157,26 @@ def rerase(p=.5, sl=0.02, sh=0.4, r1=0.3, pixel_level=True) -> Op:
                 sample[top:top+h, left:left+w] = c
                 break
         return sample
+    return op
+
+def cutout(length, p=.5, n_holes=1) -> Op:
+    def op(sample: np.ndarray) -> np.ndarray:
+        if np.random.random() > p:
+            return sample
+
+        h, w, c = sample.shape
+
+        for n in range(n_holes):
+            mask = np.ones((h, w, c), np.float32)
+            x = np.random.randint(h)
+            y = np.random.randint(w)
+
+            x1 = np.clip(x - length, 0, h)
+            x2 = np.clip(x + length, 0, h)
+            y1 = np.clip(y - length, 0, w)
+            y2 = np.clip(y + length, 0, w)
+
+            mask[x1:x2, y1:y2, :] = 0.
+
+        return sample * mask
     return op
