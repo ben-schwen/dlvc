@@ -141,7 +141,7 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', type=float, default=10.0, help='Learning rate')
     parser.add_argument('--beta', type=float, default=0, help='Beta parameter of momentum (0 = no momentum)')
     parser.add_argument('--nesterov', action='store_true', help='Use Nesterov momentum')
-    parser.add_argument('--adamw', action='store_true', help='Use AdamW optimizer instead of SGD')
+    parser.add_argument('--rms', action='store_true', help='Use AdamW optimizer instead of SGD')
     args = parser.parse_args()
 
     # REPL
@@ -165,8 +165,8 @@ if __name__ == '__main__':
     loc = torch.tensor([args.sx1, args.sx2], requires_grad=True)
     optimizer = torch.optim.SGD([loc], lr=args.learning_rate, momentum=args.beta, nesterov=args.nesterov)
 
-    if args.adamw:
-        optimizer = torch.optim.AdamW([loc], lr=args.learning_rate)
+    if args.rms:
+        optimizer = torch.optim.RMSprop([loc], lr=args.learning_rate, momentum=args.beta)
 
     # Find a minimum in fn using a PyTorch optimizer
     # See https://pytorch.org/docs/stable/optim.html for how to use optimizers
