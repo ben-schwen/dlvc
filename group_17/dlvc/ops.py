@@ -111,7 +111,7 @@ def vflip() -> Op:
 
 def rotate90() -> Op:
     '''
-    Rotate arrays with shape HWC left or right 90% with a probability of 0.25 each.
+    Rotate arrays with shape HWC left or right by 90 degrees with a probability of 0.25 each.
     '''
 
     # TODO implement (numpy.flip will be helpful)
@@ -151,14 +151,15 @@ def rerase(p=.5, sl=0.02, sh=0.4, r1=0.3, pixel_level=True) -> Op:
                 left = np.random.randint(0, img_w - w)
                 top = np.random.randint(0, img_h - h)
                 if pixel_level:
-                    c = np.random.uniform(-1, 1, (h, w, img_c))
+                    c = np.random.uniform(0, 1, (h, w, img_c))
                 else:
-                    c = np.random.uniform(-1, 1)
+                    c = np.random.uniform(0, 1)
                 sample[top:top+h, left:left+w] = c
                 break
         return sample
     return op
 
+# https://arxiv.org/abs/1708.04552
 def cutout(length, p=.5, n_holes=1) -> Op:
     def op(sample: np.ndarray) -> np.ndarray:
         if np.random.random() > p:

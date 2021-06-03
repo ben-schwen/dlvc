@@ -1,3 +1,5 @@
+import datetime
+
 from dlvc.batches import BatchGenerator
 from dlvc.dataset import Subset
 from dlvc.datasets.pets import PetsDataset
@@ -5,11 +7,12 @@ import dlvc.ops as ops
 import numpy as np
 from dlvc.models.pytorch import CnnClassifier
 import torch.nn as nn
-import torch.nn.functional as F
 from dlvc.test import Accuracy
 import torch
 import os
-
+import argparse
+import json
+from datetime import datetime
 
 # 1. Load the training, validation, and test sets as individual PetsDatasets.
 
@@ -24,84 +27,163 @@ elif os.path.isdir(fp_ben):
 elif os.path.isdir(fp_fab):
     fp = fp_fab
 
-print("Lade Bilder")
-train_ds = PetsDataset(fp, Subset.TRAINING)
-valid_ds = PetsDataset(fp, Subset.VALIDATION)
-test_ds = PetsDataset(fp, Subset.TEST)
-print("Bilder geladen")
-
-# 2. Create a BatchGenerator for each one. Traditional classifiers don't usually train in batches so you can set the
-# minibatch size equal to the number of dataset samples to get a single large batch - unless you choose a classifier
-# that does require multiple batches.
-op = ops.chain([
-    ops.add(-127.5),
-    ops.mul(1/127.5),
-    ops.hwc2chw()
-])
-
 # set seed for reproducibility
+torch.manual_seed(373)
 np.random.seed(373)
 
-batch_size = 16
-train_b = BatchGenerator(train_ds, batch_size, True, op)
-valid_b = BatchGenerator(valid_ds, 1024, True, op)
-test_b = BatchGenerator(test_ds, batch_size, False, op)
+if __name__ == '__main__':
+    # Parse args
+    parser = argparse.ArgumentParser(description='Lorem ipsum')
+    parser.add_argument('--epoch', type=int, default=50, help='Number of epochs')
+    parser.add_argument('--channel', action='store_true', help='Use per channel standardization')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
+    parser.add_argument('--fc_size', type=int, default=256, help='Size of last linear layer')
+    parser.add_argument('--learning_rate', type=float, default=1e-3, help='Learning rate')
+    args = parser.parse_args()
 
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        # basic recipe
-        out_size = 64
+    print("Lade Bilder")
+    train_ds = PetsDataset(fp, Subset.TRAINING)
+    valid_ds = PetsDataset(fp, Subset.VALIDATION)
+    test_ds = PetsDataset(fp, Subset.TEST)
+    print("Bilder geladen")
 
-        self.conv1 = nn.Conv2d(3, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.conv2 = nn.Conv2d(out_size, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    # calculate per channel mean/sd
+    # already works well since we didnt fuck with broadcasting
+    full_train = next(iter(BatchGenerator(train_ds, len(train_ds), False)))
+    mean = np.mean(full_train.data)
+    std = np.std(full_train.data)
+    mean_channel = np.mean(full_train.data, axis=(0, 1, 2))
+    std_channel = np.std(full_train.data, axis=(0, 1, 2))
 
-        in_size = out_size
-        out_size *= 2
+    # 2. Create a BatchGenerator for each one. Traditional classifiers don't usually train in batches so you can set the
+    # minibatch size equal to the number of dataset samples to get a single large batch - unless you choose a classifier
+    # that does require multiple batches.
+    if (args.channel):
+        print("Per channel normalization")
+        op = ops.chain([
+            ops.add(-mean_channel),
+            ops.mul(1 / std_channel),
+            ops.hwc2chw()
+        ])
+    else:
+        print("Default normalization")
+        op = ops.chain([
+            ops.add(-mean),
+            ops.mul(1 / std),
+            ops.hwc2chw()
+        ])
 
-        self.conv3 = nn.Conv2d(in_size, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.conv4 = nn.Conv2d(out_size, out_size, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    print("Batch size: {}".format(args.batch_size))
 
-        self.pool = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+    train_b = BatchGenerator(train_ds, args.batch_size, True, op)
+    valid_b = BatchGenerator(valid_ds, args.batch_size, True, op)
+    test_b = BatchGenerator(test_ds, args.batch_size, False, op)
 
-        size = int(8 * 8 * out_size)
-        self.fc1 = nn.Linear(size, 2)
+    # check per channel normalization
+    # b = next(iter(BatchGenerator(train_ds, len(train_ds), False, op)))
+    # print(np.mean(b.data, axis=(0,2,3)))
+    # print(np.std(b.data, axis=(0,2,3)))
 
-        self.out_size = out_size
+    # basic recipe
+    def conv_block(in_f, out_f, *args, **kwargs):
+        return nn.Sequential(
+                nn.Conv2d(in_f, out_f, *args, **kwargs),
+                nn.ReLU(),
+                nn.Conv2d(out_f, out_f, *args, **kwargs),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+        )
 
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)
+    class Net(nn.Module):
+        def __init__(self, num_classes=2):
+            super().__init__()
+            self.enc_sizes = [3, 32, 64]
+            conv_blocks = [conv_block(in_f, out_f, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+                           for in_f, out_f in zip(self.enc_sizes, self.enc_sizes[1:])]
 
-        x = F.relu(self.conv3(x))
-        x = F.relu(self.conv4(x))
-        x = self.pool(x)
+            self.encoder = nn.Sequential(*conv_blocks)
+            self.decoder = nn.Sequential(
+                nn.Linear(8 * 8 * 64, args.fc_size),
+                nn.ReLU(),
+                nn.Linear(args.fc_size, num_classes)
+            )
 
-        x = x.view(-1, int(8 * 8 * self.out_size))
-        x = self.fc1(x)
-        return x
+        def forward(self, x):
+            x = self.encoder(x)
+            x = x.view(x.size(0), -1)
+            x = self.decoder(x)
+            return x
 
+    net = Net()
 
-net = Net()
+    # visualize network with torchviz
+    # from torchviz import make_dot
+    # dummy_batch = next(iter(BatchGenerator(train_ds, 32, True, op)))
+    # data = (torch.from_numpy(dummy_batch.data)).float()
+    # yhat = net(data)
+    # make_dot(yhat, params=dict(list(net.named_parameters()))).render("basic_recipe", format="png")
 
-if torch.cuda.is_available():
-    net = net.cuda()
+    # visualize with hidden layer
+    # import hiddenlayer as hl
+    # im = hl.build_graph(net, torch.zeros([1, 3, 32, 32]))
+    # im.save(path="basic_recipe", format="png")
+    print(net)
 
-print("== Training from scratch ===")
-clf = CnnClassifier(net, (0,3,32,32), 2, lr=0.001, wd=0)
+    if torch.cuda.is_available():
+        net = net.cuda()
 
-for epoch in range(100):
-    print("epoch {}".format(epoch))
+    print("== Training from scratch ===")
+    clf = CnnClassifier(net, (0, 3, 32, 32), 2, lr=args.learning_rate, wd=0)
 
-    losses = []
-    for batch in iter(train_b):
-        losses.append(clf.train(batch.data, batch.label))
-    losses = np.array(losses)
-    print("\ttrain loss: {:.3f} +- {:.3f}".format(losses.mean(), losses.std()))
+    start = datetime.now()
+    for epoch in range(args.epoch):
+        print("epoch {}".format(epoch))
 
+        losses = []
+        for batch in iter(train_b):
+            losses.append(clf.train(batch.data, batch.label))
+        losses = np.array(losses)
+        print("\ttrain loss: {:.3f} +- {:.3f}".format(losses.mean(), losses.std()))
+
+        acc = Accuracy()
+        for batch in iter(valid_b):
+            acc.update(clf.predict(batch.data), batch.label)
+        print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))
+    end = datetime.now()
+
+    print("=== After full training: === ")
     acc = Accuracy()
+    for batch in iter(train_b):
+        acc.update(clf.predict(batch.data), batch.label)
+    print("\ttrain acc: accuracy: {:.3f}".format(acc.accuracy()))
+    train_acc = acc.accuracy()
+    acc.reset()
     for batch in iter(valid_b):
         acc.update(clf.predict(batch.data), batch.label)
     print("\tval acc: accuracy: {:.3f}".format(acc.accuracy()))
+    valid_acc = acc.accuracy()
+    acc.reset()
+    for batch in iter(test_b):
+        acc.update(clf.predict(batch.data), batch.label)
+    print("\ttest acc: accuracy: {:.3f}".format(acc.accuracy()))
+    test_acc = acc.accuracy()
+
+    out = {}
+    out['time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    out['training_time'] = str(end-start)
+    out['batch_size'] = args.batch_size
+    out['channel_normalization'] = args.channel
+    out['learning_rate'] = args.learning_rate
+    out['last_layer_size'] = args.fc_size
+    out['epochs'] = epoch+1
+    out['train_loss_mean'] = losses.mean()
+    out['train_loss_std'] = losses.std()
+    out['train_acc'] = train_acc
+    out['valid_acc'] = valid_acc
+    out['test_acc'] = test_acc
+    with open("result_part2", "a") as outfile:
+        json.dump(out, outfile)
+        outfile.write(',\n')
+
+
 

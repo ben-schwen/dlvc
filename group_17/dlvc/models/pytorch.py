@@ -61,6 +61,7 @@ class CnnClassifier(Model):
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(self.net.parameters(), lr=self.lr, weight_decay=self.wd, momentum=0.9, nesterov=True)
+        #self.optimizer = optim.Adam(self.net.parameters(), lr=self.lr, weight_decay=self.wd)
         self.size = size
 
     def input_shape(self) -> tuple:
